@@ -16,7 +16,7 @@ export function handleRoot(): Response {
   )
 }
 
-export async function handlePublicRequest(chain: string, request: Request): Promise<Response> {
+export async function handlePublicRequest(chain: string, request: Request, env: Env): Promise<Response> {
   const nodes = CHAIN_NODES[chain as ChainId]
 
   if (!nodes || nodes.length === 0) {
@@ -30,19 +30,24 @@ export async function handlePublicRequest(chain: string, request: Request): Prom
 
   const nodeUrl = chooseNode(nodes)
 
-  return proxyRequest(nodeUrl, request)
+  return proxyRequest(nodeUrl, request, env.NULLRPC_AUTH)
 }
 
-export function handleAuthenticatedRequest(chain: string, _token: string, request: Request): Promise<Response> {
+export function handleAuthenticatedRequest(
+  chain: string,
+  _token: string,
+  request: Request,
+  env: Env
+): Promise<Response> {
   // Logic is currently same as public, but we might validate token later.
   // For now, just forward to the chain nodes.
 
   // TODO: Validate token here if needed in future
 
-  return handlePublicRequest(chain, request)
+  return handlePublicRequest(chain, request, env)
 }
 
-async function proxyRequest(targetUrl: string, originalRequest: Request): Promise<Response> {
+async function proxyRequest(targetUrl: string, originalRequest: Request, authHeader: string): Promise<Response> {
   // We strictly only forward POST for RPC usually, but generic proxying:
   // We Clone the method and body.
   // We strip headers to ensure privacy, only sending essential ones.
@@ -51,6 +56,9 @@ async function proxyRequest(targetUrl: string, originalRequest: Request): Promis
     const cleanHeaders = new Headers()
     cleanHeaders.set('Content-Type', 'application/json')
     cleanHeaders.set('Accept', 'application/json')
+    if (authHeader) {
+      cleanHeaders.set('X-NullRPC-Auth', authHeader)
+    }
 
     const response = await fetch(targetUrl, {
       body: originalRequest.body,

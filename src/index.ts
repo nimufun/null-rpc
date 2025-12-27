@@ -67,7 +67,7 @@ export default {
         return checkRateLimitAndHandlePublic(chain, request, env)
       }
 
-      return handleAuthenticatedRequest(chain, token, request)
+      return handleAuthenticatedRequest(chain, token, request, env)
     }
 
     // Extract second segment: "token"
@@ -91,7 +91,7 @@ export default {
 
     // CASE: "/:chain/:token/"
     // Valid authenticated request with trailing slash.
-    return handleAuthenticatedRequest(chain, token, request)
+    return handleAuthenticatedRequest(chain, token, request, env)
   }
 } satisfies ExportedHandler<Env>
 
@@ -103,5 +103,5 @@ async function checkRateLimitAndHandlePublic(chain: string, request: Request, en
     return new Response('Rate Limit Exceeded', { status: 429 })
   }
 
-  return handlePublicRequest(chain, request)
+  return handlePublicRequest(chain, request, env)
 }
