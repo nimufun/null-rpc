@@ -18,7 +18,7 @@ export class UserSession extends DurableObject {
     this.storage = state.storage
   }
 
-  async checkLimit(): Promise<RateLimitResult> {
+  async checkLimit(chain: string, totalNodes: number): Promise<RateLimitResult> {
     const data = await this.ensureUserData()
     const plan = PLANS[data.plan]
     const now = Date.now()
@@ -55,6 +55,18 @@ export class UserSession extends DurableObject {
     this.tokens -= 1
     data.usage.currentMonthRequestCount += 1
 
+    // 4. Sticky Node Assignment
+    if (!data.stickyNodes) {
+      data.stickyNodes = {}
+    }
+
+    let nodeIndex = data.stickyNodes[chain]
+    if (nodeIndex === undefined) {
+      // Assign a new random node for this user on this chain
+      nodeIndex = Math.floor(Math.random() * totalNodes)
+      data.stickyNodes[chain] = nodeIndex
+    }
+
     // Persist usage occasionally or on every request?
     // For "almost 0 latency", we might want to batch this,
     // but DO writes are fast (coalesced). Let's write for correctness.
@@ -68,6 +80,7 @@ export class UserSession extends DurableObject {
 
     return {
       allowed: true,
+      nodeIndex,
       remaining: plan.requestsPerMonth - data.usage.currentMonthRequestCount
     }
   }

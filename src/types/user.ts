@@ -6,4 +6,5 @@ export interface UserStorageData {
     currentMonthRequestCount: number
     lastResetTimestamp: number
   }
+  stickyNodes?: Record<string, number>
 }

@@ -16,7 +16,12 @@ export function handleRoot(): Response {
   )
 }
 
-export async function handlePublicRequest(chain: string, request: Request, env: Env): Promise<Response> {
+export async function handleRequest(
+  chain: string,
+  request: Request,
+  env: Env,
+  preferredNodeIndex?: number
+): Promise<Response> {
   const nodes = CHAIN_NODES[chain as ChainId]
 
   if (!nodes || nodes.length === 0) {
@@ -28,9 +33,18 @@ export async function handlePublicRequest(chain: string, request: Request, env: 
     )
   }
 
-  const nodeUrl = chooseNode(nodes)
+  let nodeUrl: string
 
-  return proxyRequest(nodeUrl, request, env.NULLRPC_AUTH)
+  // Use sticky node if valid, otherwise round-robin
+  if (preferredNodeIndex !== undefined && nodes[preferredNodeIndex]) {
+    nodeUrl = nodes[preferredNodeIndex]
+  } else {
+    nodeUrl = chooseNode(nodes)
+  }
+
+  const targetUrl = `${nodeUrl}/${chain}`
+
+  return proxyRequest(targetUrl, request, env.NULLRPC_AUTH)
 }
 
 export async function handleAuthenticatedRequest(
@@ -39,13 +53,24 @@ export async function handleAuthenticatedRequest(
   request: Request,
   env: Env
 ): Promise<Response> {
+  // 0.  Validate Chain before checking limits to ensure we have node count
+  const nodes = CHAIN_NODES[chain as ChainId]
+  if (!nodes || nodes.length === 0) {
+    return createJsonResponse(
+      {
+        error: `Chain ${chain} not supported or no nodes available`
+      },
+      404
+    )
+  }
+
   // 1. Get the Durable Object stub for this user (token)
   // We use the token string itself as the name to get a stable ID
   const id = env.USER_SESSION.idFromName(token)
   const session = env.USER_SESSION.get(id)
 
-  // 2. Check limits
-  const { allowed, reason } = await session.checkLimit()
+  // 2. Check limits and get sticky node
+  const { allowed, reason, nodeIndex } = await session.checkLimit(chain, nodes.length)
 
   if (!allowed) {
     const status = reason === 'monthly_limit' ? 402 : 429
@@ -57,8 +82,8 @@ export async function handleAuthenticatedRequest(
     )
   }
 
-  // 3. Proxy request if allowed
-  return handlePublicRequest(chain, request, env)
+  // 3. Proxy request if allowed, passing the sticky node index
+  return handleRequest(chain, request, env, nodeIndex)
 }
 
 async function proxyRequest(targetUrl: string, originalRequest: Request, authHeader: string): Promise<Response> {

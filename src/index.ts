@@ -1,4 +1,4 @@
-import { handleAuthenticatedRequest, handlePublicRequest, handleRoot } from './handlers'
+import { handleAuthenticatedRequest, handleRequest, handleRoot } from './handlers'
 
 /**
  * High-performance Cloudflare Worker entry point.
@@ -105,5 +105,5 @@ async function checkRateLimitAndHandlePublic(chain: string, request: Request, en
     return new Response('Rate Limit Exceeded', { status: 429 })
   }
 
-  return handlePublicRequest(chain, request, env)
+  return handleRequest(chain, request, env)
 }
