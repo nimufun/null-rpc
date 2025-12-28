@@ -1,4 +1,5 @@
 import { handleRequest, handleRoot } from '@/handlers'
+import { syncPublicNodes } from '@/services'
 
 export { ChainDO } from './objects/chain'
 
@@ -130,6 +131,10 @@ export default {
     }
 
     return new Response('Not Found', { status: 404 })
+  },
+
+  async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(syncPublicNodes(env))
   }
 } satisfies ExportedHandler<Env>
 

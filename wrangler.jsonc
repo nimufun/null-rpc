@@ -18,7 +18,7 @@
         "type": "ratelimit",
         "namespace_id": "1001",
         "simple": {
-          "limit": 30,
+          "limit": 5000,
           "period": 10
         }
       }
@@ -44,5 +44,8 @@
       "tag": "v4",
       "new_classes": ["ChainDO"]
     }
-  ]
+  ],
+  "triggers": {
+    "crons": ["*/10 * * * *"]
+  }
 }
