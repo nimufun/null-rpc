@@ -26,7 +26,6 @@ export async function handleRequest(
   chain: string,
   request: Request,
   env: Env,
-  preferredNodeIndex?: number,
   ctx?: ExecutionContext
 ): Promise<Response> {
   // Try caching only if we have a context (sanity check)
@@ -81,14 +80,7 @@ export async function handleRequest(
     )
   }
 
-  let nodeUrl: string
-
-  // Use sticky node if valid, otherwise round-robin
-  if (preferredNodeIndex !== undefined && nodes[preferredNodeIndex]) {
-    nodeUrl = nodes[preferredNodeIndex]
-  } else {
-    nodeUrl = chooseNode(nodes)
-  }
+  const nodeUrl = chooseNode(nodes)
 
   const response = await proxyRequest(nodeUrl, request, env.NULLRPC_AUTH)
 
@@ -136,8 +128,8 @@ export async function handleAuthenticatedRequest(
     )
   }
 
-  // 3. Proxy request if allowed, passing the sticky node index
-  return handleRequest(chain, request, env, nodeIndex, ctx)
+  // 3. Proxy request if allowed (round-robin node selection happens in handleRequest)
+  return handleRequest(chain, request, env, ctx)
 }
 
 async function proxyRequest(targetUrl: string, originalRequest: Request, authHeader: string): Promise<Response> {
