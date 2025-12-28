@@ -1,6 +1,6 @@
 import { DurableObject } from 'cloudflare:workers'
-import type { RateLimitResult, SessionState, UserRecord } from '@/types'
-import { PLANS, type PlanType } from '@/types/plans'
+import { PLANS } from '@/constants'
+import type { PlanType, RateLimitResult, SessionState, UserRecord } from '@/types'
 
 export class UserSession extends DurableObject {
   protected state: DurableObjectState

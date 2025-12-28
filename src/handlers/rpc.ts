@@ -1,8 +1,7 @@
 import { CHAIN_NODES, type ChainId, MEV_PROTECTION } from '@/constants'
-import { cacheResponse, calculateCacheKey, getCachedResponse, getCacheTtl } from '@/services/cache'
+import { cacheResponse, calculateCacheKey, getCachedResponse, getCacheTtl } from '@/services'
 import type { AnalyticsData } from '@/types'
-import { getContentLength, trackRequest } from '@/utils'
-import { createJsonResponse } from '@/utils/response'
+import { createJsonResponse, getContentLength, trackRequest } from '@/utils'
 
 // Global round-robin counter for node selection
 let roundRobinIndex = 0
