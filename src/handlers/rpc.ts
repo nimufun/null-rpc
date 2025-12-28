@@ -1,7 +1,8 @@
-import { type AnalyticsData, getContentLength, trackRequest } from './analytics'
-import { cacheResponse, calculateCacheKey, getCachedResponse, getCacheTtl } from './cache'
-import { CHAIN_NODES, type ChainId, MEV_PROTECTION } from './constants'
-import { createJsonResponse, createRawJsonResponse } from './response'
+import { CHAIN_NODES, type ChainId, MEV_PROTECTION } from '@/constants'
+import { cacheResponse, calculateCacheKey, getCachedResponse, getCacheTtl } from '@/services/cache'
+import type { AnalyticsData } from '@/types'
+import { getContentLength, trackRequest } from '@/utils'
+import { createJsonResponse } from '@/utils/response'
 
 // Global round-robin counter for node selection
 let roundRobinIndex = 0
@@ -11,16 +12,6 @@ function chooseNode(nodes: string[]): string {
   const index = roundRobinIndex % nodes.length
   roundRobinIndex++
   return nodes[index]
-}
-
-export function handleRoot(): Response {
-  return createRawJsonResponse(
-    JSON.stringify({
-      id: 1,
-      jsonrpc: '2.0',
-      result: true
-    })
-  )
 }
 
 export async function handleRequest(
@@ -260,88 +251,4 @@ async function proxyRequest(targetUrl: string, originalRequest: Request, authHea
     const errorMessage = e instanceof Error ? e.message : 'Unknown error'
     return createJsonResponse({ details: errorMessage, error: 'Upstream error' }, 502)
   }
-}
-
-/**
- * Public stats endpoint
- *
- * Returns aggregate, non-sensitive statistics about the RPC service.
- * Full analytics data can be queried via Cloudflare Analytics Engine GraphQL API.
- *
- * Note: Real-time stats require querying Analytics Engine which is async.
- * This endpoint returns service metadata and explains how to access full stats.
- */
-export function handleStats(env: Env): Response {
-  // For real-time stats, you'd query Analytics Engine via GraphQL API
-  // That requires an API token and should be done from a backend/scheduled worker
-  //
-  // Example GraphQL query:
-  // query {
-  //   viewer {
-  //     accounts(filter: { accountTag: "ACCOUNT_ID" }) {
-  //       rpcStats: analyticsEngineAdaptiveGroups(
-  //         filter: { datetime_gt: "...", index: "rpc_requests" }
-  //         limit: 10000
-  //       ) {
-  //         sum { double1 }  // Total requests
-  //         avg { double2 }  // Avg latency
-  //         dimensions { blob1 blob2 blob3 }  // chain, method, cache
-  //       }
-  //     }
-  //   }
-  // }
-
-  const supportedChains = Object.keys(CHAIN_NODES)
-
-  const response = {
-    // How to access full analytics (privacy-focused: no external user data tracked)
-    analytics: {
-      dataset: 'nullrpc_metrics',
-      dimensions: {
-        blob1: 'chain',
-        blob2: 'method',
-        blob3: 'cacheStatus',
-        blob4: 'userType',
-        blob5: 'userToken',
-        blob6: 'statusCode',
-        blob7: 'errorType'
-      },
-      documentation: 'https://developers.cloudflare.com/analytics/analytics-engine/',
-      enabled: !!env.ANALYTICS,
-      metrics: {
-        double1: 'requestCount',
-        double2: 'latencyMs',
-        double3: 'requestSize',
-        double4: 'responseSize',
-        double5: 'cacheHits',
-        double6: 'errorCount',
-        double7: 'rateLimitedCount'
-      },
-      privacyNote:
-        'No geographic data (IP, country, region) is collected. Only our contextual data (userType, token) is tracked.',
-      queryEndpoint: 'https://api.cloudflare.com/client/v4/graphql'
-    },
-
-    // Service capabilities
-    capabilities: {
-      analytics: !!env.ANALYTICS,
-      caching: true,
-      chains: supportedChains,
-      rateLimiting: true
-    },
-
-    // Endpoints
-    endpoints: {
-      authenticatedRpc: '/:chain/:token',
-      root: '/',
-      rpc: '/:chain',
-      stats: '/stats'
-    },
-    service: 'NullRPC',
-    status: 'operational',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0'
-  }
-
-  return createJsonResponse(response, 200)
 }

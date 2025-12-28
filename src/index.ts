@@ -1,4 +1,4 @@
-import { handleAuthenticatedRequest, handleRequest, handleRoot, handleStats } from './handlers'
+import { handleAuthenticatedRequest, handleRequest, handleRoot, handleStats } from '@/handlers'
 
 export { UserSession } from './objects/session'
 
@@ -13,7 +13,6 @@ export { UserSession } from './objects/session'
  *
  * Routes supported:
  * - `/`                  -> Base health check (root handler)
- * - `/stats`             -> Public stats endpoint
  * - `/:chain`            -> Public chain access (e.g. /eth, /bsc)
  * - `/:chain/:token`     -> Authenticated access (e.g. /eth/123-abc)
  */
@@ -83,11 +82,6 @@ export default {
     // -------------------------------------------------------------------------
     if (path === '/' || path === '') {
       return handleRoot()
-    }
-
-    // Public stats endpoint
-    if (path === '/stats' || path === '/stats/') {
-      return handleStats(env)
     }
 
     // -------------------------------------------------------------------------

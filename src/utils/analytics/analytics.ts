@@ -15,29 +15,7 @@
  * - Indexes (string): dataset identifier for querying
  */
 
-export interface AnalyticsData {
-  // Request identification (non-personal)
-  chain: string
-  method: string
-
-  // User context (our data, not user's personal data)
-  userType: 'public' | 'authenticated'
-  userToken?: string // Optional: for per-user analytics
-
-  // Cache metrics
-  cacheStatus: 'HIT' | 'MISS' | 'BYPASS' | 'NONE'
-
-  // Response metrics
-  statusCode: number
-  latencyMs: number
-
-  // Size metrics (optional, when available)
-  requestSize?: number
-  responseSize?: number
-
-  // Error tracking (generic types only, no user context)
-  errorType?: string
-}
+import type { AnalyticsData } from '@/types'
 
 /**
  * Track a request to Analytics Engine.
@@ -46,6 +24,7 @@ export interface AnalyticsData {
  * Privacy-focused: Tracks our contextual data (userType, token),
  * but NO geographic or external user-identifiable data (IP, country, etc).
  */
+
 export function trackRequest(env: Env, ctx: ExecutionContext, data: AnalyticsData): void {
   // Only track if Analytics Engine is available
   if (!env.ANALYTICS) return
@@ -92,41 +71,3 @@ export function getContentLength(headers: Headers): number {
   const length = headers.get('content-length')
   return length ? Number.parseInt(length, 10) : 0
 }
-
-/**
- * Public stats response structure
- * Only includes aggregate, non-sensitive data
- */
-export interface PublicStats {
-  totalRequests: number
-  cacheHitRate: number
-  avgLatencyMs: number
-  requestsByChain: Record<string, number>
-  requestsByMethod: Record<string, number>
-  uptimePercent: number
-}
-
-/**
- * Note: Querying Analytics Engine requires the GraphQL API
- * which needs to be called from a separate backend or scheduled worker.
- *
- * Example GraphQL query for stats:
- *
- * query {
- *   viewer {
- *     accounts(filter: { accountTag: "YOUR_ACCOUNT_ID" }) {
- *       rpcRequests: analyticsEngineAdaptiveGroups(
- *         filter: {
- *           datetime_gt: "2025-12-27T00:00:00Z"
- *           index: "rpc_requests"
- *         }
- *         limit: 10000
- *       ) {
- *         sum { double1 }  // Total requests
- *         avg { double2 }  // Avg latency
- *         dimensions { blob1 }  // By chain
- *       }
- *     }
- *   }
- * }
- */

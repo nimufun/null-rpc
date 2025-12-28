@@ -1,22 +1,6 @@
 import { DurableObject } from 'cloudflare:workers'
-import { PLANS, type PlanType } from '../types/plans'
-import type { RateLimitResult } from '../types/rates'
-
-interface UserRecord {
-  token: string
-  plan: PlanType
-  created_at: number
-  current_month_requests: number
-  month_reset_at: number
-  address: string
-}
-
-interface SessionState {
-  tokens: number
-  lastRefill: number
-  record: UserRecord
-  dirty: boolean
-}
+import type { RateLimitResult, SessionState, UserRecord } from '@/types'
+import { PLANS, type PlanType } from '@/types/plans'
 
 export class UserSession extends DurableObject {
   protected state: DurableObjectState
