@@ -28,7 +28,7 @@
     {
       "binding": "DB",
       "database_name": "null-rpc-db",
-      "database_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      "database_id": "e236cf32-b9ab-4c84-a2f8-dc80d1c3b111"
     }
   ],
   "durable_objects": {
