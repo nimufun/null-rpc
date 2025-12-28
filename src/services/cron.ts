@@ -5,6 +5,14 @@
 
 const CHAINLIST_API = 'https://chainlist.org/rpcs.json'
 
+// Whitelisted MEV protection nodes per chain
+const MEV_NODES: Record<string, string[]> = {
+  eth: [
+    'https://eth.merkle.io',
+    'https://rpc.mevblocker.io/fullprivacy'
+  ]
+}
+
 // Target chains with their expected chain IDs
 const TARGET_CHAINS: Record<string, number> = {
   eth: 1,
@@ -18,11 +26,6 @@ const TARGET_CHAINS: Record<string, number> = {
   katana: 747474,
   berachain: 80094
 }
-
-// Reverse lookup: chainId -> slug
-const CHAIN_ID_TO_SLUG: Record<number, string> = Object.fromEntries(
-  Object.entries(TARGET_CHAINS).map(([slug, chainId]) => [chainId, slug])
-)
 
 interface ChainlistRpc {
   url: string
@@ -200,22 +203,25 @@ async function storeChainData(
   slug: string,
   chainId: number,
   nodes: string[],
-  archiveNodes: string[]
+  archiveNodes: string[],
+  mevNodes: string[]
 ): Promise<void> {
   const nodesJson = JSON.stringify(nodes)
   const archiveNodesJson = JSON.stringify(archiveNodes)
+  const mevNodesJson = JSON.stringify(mevNodes)
 
   await db
     .prepare(
-      `INSERT INTO chains (slug, chainId, nodes, archive_nodes, updated_at)
-       VALUES (?, ?, ?, ?, unixepoch())
+      `INSERT INTO chains (slug, chainId, nodes, archive_nodes, mev_protection, updated_at)
+       VALUES (?, ?, ?, ?, ?, unixepoch())
        ON CONFLICT(slug) DO UPDATE SET
          chainId = excluded.chainId,
          nodes = excluded.nodes,
          archive_nodes = excluded.archive_nodes,
+         mev_protection = excluded.mev_protection,
          updated_at = unixepoch()`
     )
-    .bind(slug, chainId, nodesJson, archiveNodesJson)
+    .bind(slug, chainId, nodesJson, archiveNodesJson, mevNodesJson)
     .run()
 }
 
@@ -251,8 +257,14 @@ export async function syncPublicNodes(env: Env): Promise<void> {
       const { nodes, archiveNodes } = await validateChainNodes(rpcUrls, expectedChainId)
       console.log(`[Cron] ${slug}: ${nodes.length} valid nodes, ${archiveNodes.length} archive nodes`)
 
+      // Get whitelisted MEV nodes for this chain
+      const mevNodes = MEV_NODES[slug] || []
+      if (mevNodes.length > 0) {
+        console.log(`[Cron] ${slug}: ${mevNodes.length} MEV protection nodes whitelisted`)
+      }
+
       // Store in D1
-      await storeChainData(env.DB, slug, expectedChainId, nodes, archiveNodes)
+      await storeChainData(env.DB, slug, expectedChainId, nodes, archiveNodes, mevNodes)
       console.log(`[Cron] ${slug}: Stored in database`)
     }
 

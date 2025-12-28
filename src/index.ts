@@ -136,6 +136,7 @@ export default {
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(syncPublicNodes(env))
   }
+  
 } satisfies ExportedHandler<Env>
 
 async function checkRateLimitAndHandlePublic(
