@@ -91,7 +91,7 @@ function extractRpcUrls(entry: ChainlistEntry): string[] {
 async function testChainId(url: string, expectedChainId: number): Promise<boolean> {
   try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 5000)
+    const timeout = setTimeout(() => controller.abort(), 3000) // Reduced timeout
 
     const response = await fetch(url, {
       method: 'POST',
@@ -128,7 +128,7 @@ async function testChainId(url: string, expectedChainId: number): Promise<boolea
 async function testArchiveCapability(url: string): Promise<boolean> {
   try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 5000)
+    const timeout = setTimeout(() => controller.abort(), 3000) // Reduced timeout
 
     const response = await fetch(url, {
       method: 'POST',
@@ -155,7 +155,6 @@ async function testArchiveCapability(url: string): Promise<boolean> {
     return false
   }
 }
-
 /**
  * Validate all RPC URLs for a chain and categorize as regular or archive nodes
  */
@@ -166,28 +165,26 @@ async function validateChainNodes(
   const nodes: string[] = []
   const archiveNodes: string[] = []
 
-  // Test RPCs in parallel batches to avoid rate limiting
-  const BATCH_SIZE = 10
+  // Heavy batch - test all nodes in parallel for speed
+  // Cloudflare charges for compute time, not requests
+  const results = await Promise.allSettled(
+    rpcUrls.map(async (url) => {
+      // Run chainId and archive tests concurrently
+      const [validChainId, isArchive] = await Promise.all([
+        testChainId(url, expectedChainId),
+        testArchiveCapability(url)
+      ])
 
-  for (let i = 0; i < rpcUrls.length; i += BATCH_SIZE) {
-    const batch = rpcUrls.slice(i, i + BATCH_SIZE)
+      if (!validChainId) return null
+      return { url, isArchive }
+    })
+  )
 
-    const results = await Promise.all(
-      batch.map(async (url) => {
-        const validChainId = await testChainId(url, expectedChainId)
-        if (!validChainId) return null
-
-        const isArchive = await testArchiveCapability(url)
-        return { url, isArchive }
-      })
-    )
-
-    for (const result of results) {
-      if (result) {
-        nodes.push(result.url)
-        if (result.isArchive) {
-          archiveNodes.push(result.url)
-        }
+  for (const result of results) {
+    if (result.status === 'fulfilled' && result.value) {
+      nodes.push(result.value.url)
+      if (result.value.isArchive) {
+        archiveNodes.push(result.value.url)
       }
     }
   }
@@ -224,7 +221,6 @@ async function storeChainData(
     .bind(slug, chainId, nodesJson, archiveNodesJson, mevNodesJson)
     .run()
 }
-
 /**
  * Main sync function - fetches, validates, and stores public nodes
  */
@@ -236,7 +232,7 @@ export async function syncPublicNodes(env: Env): Promise<void> {
     const chains = await fetchChainlist()
     console.log(`[Cron] Fetched ${chains.length} chains from chainlist`)
 
-    // Find our target chains
+    // Process chains SEQUENTIALLY to avoid hitting connection limits
     for (const [slug, expectedChainId] of Object.entries(TARGET_CHAINS)) {
       const chainEntry = chains.find((c) => c.chainId === expectedChainId)
 
