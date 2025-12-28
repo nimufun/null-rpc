@@ -10,7 +10,6 @@ declare namespace Cloudflare {
 		NULLRPC_AUTH: string;
 		USER_SESSION: DurableObjectNamespace<import("./src/index").UserSession>;
 		RATE_LIMITER: RateLimit;
-		TEST_NODE: string;
 	}
 }
 interface Env extends Cloudflare.Env {}

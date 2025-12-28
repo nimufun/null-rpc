@@ -2,9 +2,14 @@ import { cacheResponse, calculateCacheKey, getCachedResponse, getCacheTtl } from
 import { CHAIN_NODES, type ChainId } from './constants'
 import { createJsonResponse, createRawJsonResponse } from './response'
 
-// Stateless Round-Robin (Random)
+// Global round-robin counter for node selection
+let roundRobinIndex = 0
+
+// True Round-Robin: cycles through nodes in order
 function chooseNode(nodes: string[]): string {
-  return nodes[Math.floor(Math.random() * nodes.length)]
+  const index = roundRobinIndex % nodes.length
+  roundRobinIndex++
+  return nodes[index]
 }
 
 export function handleRoot(): Response {
@@ -65,16 +70,7 @@ export async function handleRequest(
     return response
   }
 
-  // Use TEST_NODE if available (for development), otherwise use configured chain nodes
-  const testNode = env.TEST_NODE
-
-  let nodes: string[]
-
-  if (testNode) {
-    nodes = [testNode]
-  } else {
-    nodes = CHAIN_NODES[chain as ChainId] || []
-  }
+  const nodes: string[] = CHAIN_NODES[chain as ChainId] || []
 
   if (!nodes || nodes.length === 0) {
     return createJsonResponse(
