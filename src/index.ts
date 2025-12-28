@@ -1,6 +1,6 @@
 import { handleAuthenticatedRequest, handleRequest, handleRoot, handleStats } from './handlers'
 
-export { UserRegistry } from './objects/registry'
+export { UserSession } from './objects/session'
 
 /**
  * High-performance Cloudflare Worker entry point.

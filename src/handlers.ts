@@ -168,8 +168,6 @@ export async function handleRequest(
   return response
 }
 
-import { getShardId } from './utils/sharding'
-
 export async function handleAuthenticatedRequest(
   chain: string,
   token: string,
@@ -197,13 +195,13 @@ export async function handleAuthenticatedRequest(
     return createJsonResponse({ error: `Chain ${chain} not supported or no nodes available` }, 404)
   }
 
-  // 1. Get the Sharded User Registry
-  const shardId = getShardId(token)
-  const id = env.USER_REGISTRY.idFromName(shardId)
-  const registry = env.USER_REGISTRY.get(id)
+  // 1. Get the User Session Actor (Per-User)
+  // Each user gets their own DO for infinite scalability
+  const id = env.USER_SESSION.idFromName(token)
+  const session = env.USER_SESSION.get(id)
 
-  // 2. Check rate limits (passing the token)
-  const { allowed, reason } = await registry.checkLimit(token)
+  // 2. Check rate limits (token bucket in memory)
+  const { allowed, reason } = await session.checkLimit(token)
 
   if (!allowed) {
     if (reason === 'user_not_found') {

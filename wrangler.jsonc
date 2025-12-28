@@ -24,18 +24,25 @@
       }
     ]
   },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "null-rpc-db",
+      "database_id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    }
+  ],
   "durable_objects": {
     "bindings": [
       {
-        "name": "USER_REGISTRY",
-        "class_name": "UserRegistry"
+        "name": "USER_SESSION",
+        "class_name": "UserSession"
       }
     ]
   },
   "migrations": [
     {
-      "tag": "v2",
-      "new_sqlite_classes": ["UserRegistry"]
+      "tag": "v3",
+      "new_classes": ["UserSession"]
     }
   ]
 }

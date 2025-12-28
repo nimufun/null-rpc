@@ -9,9 +9,10 @@ declare namespace Cloudflare {
 	interface Env {
 		NULLRPC_AUTH: string;
 		TARGET_URL: string;
-		USER_REGISTRY: DurableObjectNamespace<import("./src/index").UserRegistry>;
+		USER_SESSION: DurableObjectNamespace<import("./src/objects/session").UserSession>;
 		ANALYTICS: AnalyticsEngineDataset;
 		RATE_LIMITER: RateLimit;
+		DB: D1Database;
 	}
 }
 interface Env extends Cloudflare.Env {}
