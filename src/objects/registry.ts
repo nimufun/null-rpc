@@ -8,6 +8,7 @@ interface UserRecord {
   created_at: number
   current_month_requests: number
   month_reset_at: number
+  address: string
 }
 
 // In-memory state for active users (Token Bucket)
@@ -15,7 +16,7 @@ interface ActiveUserState {
   tokens: number
   lastRefill: number
   record: UserRecord
-  dirty: boolean // If usage needs saving
+  dirty: boolean
 }
 
 export class UserRegistry extends DurableObject {
@@ -41,11 +42,11 @@ export class UserRegistry extends DurableObject {
         month_reset_at INTEGER NOT NULL,
         
         -- Metadata
-        email TEXT,
-        name TEXT
+        address TEXT
       );
       
       CREATE INDEX IF NOT EXISTS idx_plan ON users(plan);
+      CREATE INDEX IF NOT EXISTS idx_address ON users(address);
     `)
   }
 
@@ -117,7 +118,7 @@ export class UserRegistry extends DurableObject {
       dirty: false,
       lastRefill: Date.now(),
       record,
-      tokens: PLANS[record.plan].requestsPerSecond // Start full
+      tokens: PLANS[record.plan].requestsPerSecond
     }
 
     this.activeUsers.set(token, active)
