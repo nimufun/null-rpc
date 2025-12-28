@@ -1,6 +1,4 @@
-import { handleAuthenticatedRequest, handleRequest, handleRoot } from '@/handlers'
-
-export { UserSession } from './objects/session'
+import { handleRequest, handleRoot } from '@/handlers'
 
 /**
  * High-performance Cloudflare Worker entry point.
@@ -127,32 +125,9 @@ export default {
         // Trailing slash after chain means it is still a public request.
         return checkRateLimitAndHandlePublic(chain, cleanRequest, clientIp, env, ctx)
       }
-
-      return handleAuthenticatedRequest(chain, token, cleanRequest, env, ctx)
     }
 
-    // Extract second segment: "token"
-    const token = path.slice(tokenStart, tokenEnd)
-    if (!token) {
-      // CASE: "/:chain//"
-      // Double slash in token position is invalid.
-      return new Response('Not Found', { status: 404 })
-    }
-
-    // -------------------------------------------------------------------------
-    // 4. Validation for extra segments
-    // -------------------------------------------------------------------------
-    // CASE: "/:chain/:token/something"
-    // We strictly support only depth-2 for authenticated routes.
-    const remainder = path.slice(tokenEnd + 1)
-
-    if (remainder && remainder !== '/') {
-      return new Response('Not Found', { status: 404 })
-    }
-
-    // CASE: "/:chain/:token/"
-    // Valid authenticated request with trailing slash.
-    return handleAuthenticatedRequest(chain, token, cleanRequest, env, ctx)
+    return new Response('Not Found', { status: 404 })
   }
 } satisfies ExportedHandler<Env>
 

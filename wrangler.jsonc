@@ -24,25 +24,11 @@
       }
     ]
   },
-  "d1_databases": [
+"d1_databases": [
     {
       "binding": "DB",
       "database_name": "null-rpc-db",
-      "database_id": "e236cf32-b9ab-4c84-a2f8-dc80d1c3b111"
-    }
-  ],
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "USER_SESSION",
-        "class_name": "UserSession"
-      }
-    ]
-  },
-  "migrations": [
-    {
-      "tag": "v3",
-      "new_classes": ["UserSession"]
+      "database_id": "fd142855-f850-445e-bfb7-c3969188bda4"
     }
   ]
 }

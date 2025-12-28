@@ -41,10 +41,8 @@ export function trackRequest(env: Env, ctx: ExecutionContext, data: AnalyticsDat
             data.chain, // blob1: Chain identifier (eth, bsc, etc)
             data.method || 'unknown', // blob2: RPC method name
             data.cacheStatus, // blob3: Cache status
-            data.userType, // blob4: public or authenticated
-            data.userToken || '', // blob5: User token for per-user analytics
-            String(data.statusCode), // blob6: HTTP status code
-            data.errorType || '' // blob7: Error type if any
+            String(data.statusCode), // blob4: HTTP status code
+            data.errorType || '' // blob5: Error type if any
           ],
           doubles: [
             1, // double1: Request count (always 1, for summing)

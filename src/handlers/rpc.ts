@@ -17,9 +17,7 @@ export async function handleRequest(
   chain: string,
   request: Request,
   env: Env,
-  ctx?: ExecutionContext,
-  userType: 'public' | 'authenticated' = 'public',
-  userToken?: string
+  ctx?: ExecutionContext
 ): Promise<Response> {
   const startTime = performance.now()
 
@@ -80,9 +78,7 @@ export async function handleRequest(
         method,
         requestSize,
         responseSize: getContentLength(response.headers),
-        statusCode: response.status,
-        userToken,
-        userType
+        statusCode: response.status
       })
     }
 
@@ -104,9 +100,7 @@ export async function handleRequest(
         latencyMs: performance.now() - startTime,
         method,
         requestSize,
-        statusCode: 404,
-        userToken,
-        userType
+        statusCode: 404
       })
     }
 
@@ -128,7 +122,7 @@ export async function handleRequest(
   }
 
   // Attempt 1: Primary Node
-  let response = await proxyRequest(nodeUrl, request.clone(), env.NULLRPC_AUTH)
+  let response = await proxyRequest(nodeUrl, request.clone())
 
   // Retry Logic
   // If failed AND not MEV protection (fail fast for MEV to avoid accidental public broadcast)
@@ -144,7 +138,7 @@ export async function handleRequest(
       const randomNode = publicNodes[Math.floor(Math.random() * publicNodes.length)]
       // console.log(`Retry ${attempts}/${maxRetries} using ${randomNode}`)
 
-      response = await proxyRequest(randomNode, request.clone(), env.NULLRPC_AUTH)
+      response = await proxyRequest(randomNode, request.clone())
 
       if (response.ok) {
         break
@@ -175,81 +169,14 @@ export async function handleRequest(
       method,
       requestSize,
       responseSize,
-      statusCode: response.status,
-      userToken,
-      userType
+      statusCode: response.status
     })
   }
 
   return response
 }
 
-export async function handleAuthenticatedRequest(
-  chain: string,
-  token: string,
-  request: Request,
-  env: Env,
-  ctx: ExecutionContext
-): Promise<Response> {
-  const startTime = performance.now()
-
-  // 0. Validate Chain before checking limits to ensure we have node count
-  const nodes = CHAIN_NODES[chain as ChainId]
-  if (!nodes || nodes.length === 0) {
-    // Track the error
-    trackRequest(env, ctx, {
-      cacheStatus: 'NONE',
-      chain,
-      errorType: 'chain_not_found',
-      latencyMs: performance.now() - startTime,
-      method: 'unknown',
-      statusCode: 404,
-      userToken: token,
-      userType: 'authenticated'
-    })
-
-    return createJsonResponse({ error: `Chain ${chain} not supported or no nodes available` }, 404)
-  }
-
-  // 1. Get the User Session Actor (Per-User)
-  // Each user gets their own DO for infinite scalability
-  const id = env.USER_SESSION.idFromName(token)
-  const session = env.USER_SESSION.get(id)
-
-  // 2. Check rate limits (token bucket in memory)
-  const { allowed, reason } = await session.checkLimit(token)
-
-  if (!allowed) {
-    if (reason === 'user_not_found') {
-      return createJsonResponse({ error: 'User not found' }, 404)
-    }
-
-    const status = reason === 'monthly_limit' ? 402 : 429
-    const errorType = reason === 'monthly_limit' ? 'monthly_limit_exceeded' : 'rate_limit_exceeded'
-
-    // Track the rate limit rejection
-    trackRequest(env, ctx, {
-      cacheStatus: 'NONE',
-      chain,
-      errorType,
-      latencyMs: performance.now() - startTime,
-      method: 'unknown',
-      statusCode: status,
-      userToken: token,
-      userType: 'authenticated'
-    })
-
-    return createJsonResponse(
-      { error: reason === 'monthly_limit' ? 'Monthly limit exceeded' : 'Rate limit exceeded' },
-      status
-    )
-  }
-
-  // 3. Proxy request if allowed - pass authenticated userType and token for tracking
-  return handleRequest(chain, request, env, ctx, 'authenticated', token)
-}
-
-async function proxyRequest(targetUrl: string, originalRequest: Request, authHeader: string): Promise<Response> {
+async function proxyRequest(targetUrl: string, originalRequest: Request): Promise<Response> {
   // We strictly only forward POST for RPC usually, but generic proxying:
   // We Clone the method and body.
   // We strip headers to ensure privacy, only sending essential ones.
@@ -258,9 +185,6 @@ async function proxyRequest(targetUrl: string, originalRequest: Request, authHea
     const cleanHeaders = new Headers()
     cleanHeaders.set('Content-Type', 'application/json')
     cleanHeaders.set('Accept', 'application/json')
-    if (authHeader) {
-      cleanHeaders.set('X-NullRPC-Auth', authHeader)
-    }
 
     const response = await fetch(targetUrl, {
       body: originalRequest.body,

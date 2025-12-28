@@ -16,10 +16,6 @@ export interface AnalyticsData {
   chain: string
   method: string
 
-  // User context (our data, not user's personal data)
-  userType: 'public' | 'authenticated'
-  userToken?: string // Optional: for per-user analytics
-
   // Cache metrics
   cacheStatus: 'HIT' | 'MISS' | 'BYPASS' | 'NONE'
 
