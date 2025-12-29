@@ -118,7 +118,6 @@
       padding: 120px 0;
       text-align: center;
       position: relative;
-      overflow: hidden;
     }
 
     .hero::before {
@@ -207,11 +206,147 @@
       gap: 16px;
       font-family: 'JetBrains Mono', monospace;
       position: relative;
+      overflow: visible;
     }
 
     .endpoint-box code {
       color: var(--cyan-ray);
       font-size: 18px;
+    }
+
+    /* Endpoint Chain Selector */
+    .endpoint-selector {
+      position: relative;
+    }
+
+    .endpoint-chain-trigger {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+      border-radius: 8px;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: var(--white);
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .endpoint-chain-trigger:hover {
+      border-color: var(--cyan-ray);
+      background: rgba(0, 212, 255, 0.1);
+    }
+
+    .endpoint-chain-trigger.active {
+      border-color: var(--ether-blue);
+      border-radius: 8px 8px 0 0;
+    }
+
+    .endpoint-chain-trigger svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--cyan-ray);
+      transition: transform 0.2s;
+    }
+
+    .endpoint-chain-trigger.active svg {
+      transform: rotate(180deg);
+    }
+
+    .endpoint-chain-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--ether-blue), var(--cyan-ray));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      overflow: hidden;
+    }
+
+    .endpoint-chain-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .endpoint-chain-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      min-width: 200px;
+      background: rgba(10, 10, 25, 0.98);
+      border: 1px solid rgba(0, 212, 255, 0.2);
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      max-height: 250px;
+      overflow-y: auto;
+      z-index: 100;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-10px);
+      transition: all 0.2s;
+      backdrop-filter: blur(20px);
+    }
+
+    .endpoint-chain-menu.open {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .endpoint-chain-menu .endpoint-chain-item {
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: var(--terminal-grey);
+      font-size: 13px;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    .endpoint-chain-menu .endpoint-chain-item:hover {
+      background: rgba(0, 212, 255, 0.1);
+      color: var(--white);
+    }
+
+    .endpoint-chain-menu .endpoint-chain-item.selected {
+      background: rgba(0, 122, 255, 0.15);
+      color: var(--cyan-ray);
+    }
+
+    .endpoint-chain-menu .endpoint-chain-item .chain-icon-small {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--ether-blue), var(--cyan-ray));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .endpoint-chain-menu .endpoint-chain-item .chain-icon-small img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .endpoint-chain-menu .endpoint-chain-item span {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .copy-btn {
@@ -559,11 +694,21 @@
       font-weight: 700;
       color: white;
       flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    .dropdown-item .chain-badge img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
 
     .dropdown-item .chain-name {
       flex: 1;
       font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .dropdown-item .chain-requests {
@@ -1229,7 +1374,19 @@
         <p class="subtitle">Free RPC endpoints for EVM chains. No IP logging. No tracking.</p>
         
         <div class="endpoint-box">
-          <code>https://nullrpc.dev/eth</code>
+          <div class="endpoint-selector" id="endpointSelector">
+            <div class="endpoint-chain-trigger" id="endpointChainTrigger">
+              <div class="endpoint-chain-icon" id="endpointChainIcon">ET</div>
+              <span id="endpointChainName">Ethereum</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+              </svg>
+            </div>
+            <div class="endpoint-chain-menu" id="endpointChainMenu">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+          <code id="endpointUrl">https://nullrpc.dev/eth</code>
           <button class="copy-btn" onclick="copyEndpoint()">Copy</button>
         </div>
       </div>
@@ -1364,11 +1521,60 @@
     });
 
     // Copy endpoint to clipboard
+    let selectedEndpointChain = 'eth';
+    
     function copyEndpoint() {
-      navigator.clipboard.writeText('https://nullrpc.dev/eth');
+      const endpoint = document.getElementById('endpointUrl').textContent;
+      navigator.clipboard.writeText(endpoint);
       const btn = document.querySelector('.copy-btn');
       btn.textContent = 'Copied!';
       setTimeout(() => btn.textContent = 'Copy', 2000);
+    }
+
+    // Endpoint chain selector
+    const endpointTrigger = document.getElementById('endpointChainTrigger');
+    const endpointMenu = document.getElementById('endpointChainMenu');
+
+    function toggleEndpointMenu() {
+      endpointTrigger.classList.toggle('active');
+      endpointMenu.classList.toggle('open');
+    }
+
+    endpointTrigger.addEventListener('click', toggleEndpointMenu);
+
+    // Close endpoint menu when clicking outside
+    document.addEventListener('click', (e) => {
+      const selector = document.getElementById('endpointSelector');
+      if (selector && !selector.contains(e.target)) {
+        endpointTrigger.classList.remove('active');
+        endpointMenu.classList.remove('open');
+      }
+    });
+
+    function selectEndpointChain(slug, name, iconUrl) {
+      selectedEndpointChain = slug;
+      
+      // Update trigger display
+      const iconEl = document.getElementById('endpointChainIcon');
+      const nameEl = document.getElementById('endpointChainName');
+      const urlEl = document.getElementById('endpointUrl');
+      
+      if (iconUrl) {
+        iconEl.innerHTML = `<img src="${iconUrl}" alt="${name}" onerror="this.style.display='none'; this.parentElement.textContent='${slug.slice(0, 2).toUpperCase()}';">`;
+      } else {
+        iconEl.textContent = slug.slice(0, 2).toUpperCase();
+      }
+      nameEl.textContent = name;
+      urlEl.textContent = `https://nullrpc.dev/${slug}`;
+      
+      // Update selected state
+      endpointMenu.querySelectorAll('.endpoint-chain-item').forEach(item => {
+        item.classList.toggle('selected', item.dataset.slug === slug);
+      });
+      
+      // Close menu
+      endpointTrigger.classList.remove('active');
+      endpointMenu.classList.remove('open');
     }
 
     // Copy chain endpoint to clipboard
@@ -1402,12 +1608,29 @@
           eth: 'https://s2.coinmarketcap.com/static/img/coins/128x128/1027.png',
           bsc: 'https://cryptologos.cc/logos/bnb-bnb-logo.svg',
           polygon: 'https://icons.llamao.fi/icons/chains/rsz_polygon.jpg',
-          arbitrum: 'https://icons.llamao.fi/icons/chains/rsz_arbitrum.jpg',
+          arbitrum: 'https://s2.coinmarketcap.com/static/img/coins/128x128/11841.png',
           optimism: 'https://cryptologos.cc/logos/optimism-ethereum-op-logo.svg',
           base: 'https://avatars.githubusercontent.com/u/108554348?s=200&v=4',
           unichain: 'https://icons.llamao.fi/icons/chains/rsz_unichain.jpg',
           berachain: 'https://icons.llamao.fi/icons/chains/rsz_berachain.jpg',
         };
+        
+        // Custom display names for chains
+        const chainNames = {
+          eth: 'Ethereum',
+          bsc: 'Binance Smart Chain',
+          polygon: 'Polygon',
+          arbitrum: 'Arbitrum One',
+          optimism: 'Optimism',
+          base: 'Base',
+          unichain: 'Unichain',
+          berachain: 'Berachain',
+          plasma: 'Plasma',
+          katana: 'Katana Network',
+        };
+        
+        // Helper to get display name
+        const getDisplayName = (chain) => chainNames[chain.slug] || chain.name || chain.slug;
         
         if (data.chains && data.chains.length > 0) {
           grid.innerHTML = data.chains.map(chain => {
@@ -1421,7 +1644,7 @@
               <div class="chain-card-header">
                 <div class="chain-icon">${iconContent}</div>
                 <div class="chain-info">
-                  <h4>${chain.name || chain.slug}</h4>
+                  <h4>${getDisplayName(chain)}</h4>
                 </div>
                 <div class="chain-stats">
                   <div class="chain-stat">
@@ -1451,13 +1674,18 @@
             </div>
           `}).join('');
 
-          // Populate custom dropdown
-          const chainItems = data.chains.map(chain => `
+          // Populate custom dropdown with icons
+          const chainItems = data.chains.map(chain => {
+            const iconUrl = chainIcons[chain.slug] || chain.icon;
+            const badgeContent = iconUrl
+              ? `<img src="${iconUrl}" alt="${chain.name}" onerror="this.style.display='none'; this.parentElement.textContent='${chain.slug.slice(0, 2).toUpperCase()}';">`
+              : chain.slug.slice(0, 2).toUpperCase();
+            return `
             <div class="dropdown-item" data-value="${chain.slug}">
-              <div class="chain-badge">${chain.slug.slice(0, 2).toUpperCase()}</div>
-              <span class="chain-name">${chain.name || chain.slug}</span>
+              <div class="chain-badge">${badgeContent}</div>
+              <span class="chain-name">${getDisplayName(chain)}</span>
             </div>
-          `).join('');
+          `}).join('');
           
           dropdownMenu.innerHTML = `
             <div class="dropdown-item selected" data-value="all">
@@ -1470,6 +1698,28 @@
           dropdownMenu.querySelectorAll('.dropdown-item').forEach(item => {
             item.addEventListener('click', () => selectChain(item.dataset.value, item.querySelector('.chain-name').textContent));
           });
+
+          // Populate endpoint chain selector in hero
+          const endpointChainMenu = document.getElementById('endpointChainMenu');
+          endpointChainMenu.innerHTML = data.chains.map(chain => {
+            const iconUrl = chainIcons[chain.slug] || chain.icon;
+            const iconContent = iconUrl
+              ? `<img src="${iconUrl}" alt="${chain.name}" onerror="this.style.display='none'; this.parentElement.textContent='${chain.slug.slice(0, 2).toUpperCase()}';">`
+              : chain.slug.slice(0, 2).toUpperCase();
+            return `
+            <div class="endpoint-chain-item ${chain.slug === 'eth' ? 'selected' : ''}" 
+                 data-slug="${chain.slug}" 
+                 onclick="selectEndpointChain('${chain.slug}', '${getDisplayName(chain)}', '${iconUrl || ''}')">
+              <div class="chain-icon-small">${iconContent}</div>
+              <span>${getDisplayName(chain)}</span>
+            </div>
+          `}).join('');
+
+          // Set initial icon for Ethereum
+          const ethIconUrl = chainIcons['eth'];
+          if (ethIconUrl) {
+            document.getElementById('endpointChainIcon').innerHTML = `<img src="${ethIconUrl}" alt="Ethereum">`;
+          }
         } else {
           grid.innerHTML = '<p style="grid-column: 1 / -1; text-align: center; opacity: 0.5; padding: 48px 0;">No chains available yet.</p>';
         }
