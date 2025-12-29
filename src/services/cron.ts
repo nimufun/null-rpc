@@ -196,6 +196,7 @@ async function storeChainData(
   db: D1Database,
   slug: string,
   name: string,
+  icon: string | undefined,
   chainId: number,
   nodes: string[],
   archiveNodes: string[],
@@ -207,17 +208,18 @@ async function storeChainData(
 
   await db
     .prepare(
-      `INSERT INTO chains (slug, name, chainId, nodes, archive_nodes, mev_protection, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, unixepoch())
+      `INSERT INTO chains (slug, name, icon, chainId, nodes, archive_nodes, mev_protection, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, unixepoch())
        ON CONFLICT(slug) DO UPDATE SET
          name = excluded.name,
+         icon = excluded.icon,
          chainId = excluded.chainId,
          nodes = excluded.nodes,
          archive_nodes = excluded.archive_nodes,
          mev_protection = excluded.mev_protection,
          updated_at = unixepoch()`
     )
-    .bind(slug, name, chainId, nodesJson, archiveNodesJson, mevNodesJson)
+    .bind(slug, name, icon || null, chainId, nodesJson, archiveNodesJson, mevNodesJson)
     .run()
 }
 
