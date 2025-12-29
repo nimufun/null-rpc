@@ -25,7 +25,7 @@ const QUERIES = {
       AVG(double2) as avg_latency_ms,
       SUM(_sample_interval * double5) as cache_hits,
       SUM(_sample_interval * double6) as errors
-    FROM nullrpc_metrics
+    FROM null_rpc_metrics
     WHERE timestamp > NOW() - INTERVAL '24' HOUR
     AND index1 = 'rpc_requests'
     ${GetChainClause(chain)}
@@ -42,11 +42,8 @@ const QUERIES = {
       SUM(_sample_interval * double5) as cache_hits,
       SUM(_sample_interval * double6) as errors,
       SUM(_sample_interval * double7) as rate_limited
-    FROM nullrpc_metrics
+    FROM null_rpc_metrics
     WHERE timestamp > NOW() - INTERVAL '24' HOUR
-    AND index1 = 'rpc_requests'
-    ${GetChainClause(chain)}
-    AND blob1 NOT LIKE '%.%' AND blob1 NOT LIKE '%/%'
   `
 }
 
@@ -70,6 +67,14 @@ async function queryAnalyticsEngine(accountId: string, apiToken: string, query: 
   }
 
   const result = (await response.json()) as { data?: unknown[]; meta?: unknown }
+
+  console.log(`[Analytics] Query: ${query.trim().substring(0, 50)}...`)
+  console.log(`[Analytics] Rows returned: ${result.data?.length ?? 0}`)
+  if (result.data?.length === 0) {
+    console.log('[Analytics] Zero rows returned. Full Response:', JSON.stringify(result))
+  } else if (result.data && result.data.length > 0) {
+    console.log('[Analytics] First row sample:', JSON.stringify(result.data[0]))
+  }
 
   // Return only the data array, strip meta
   return result.data || []
