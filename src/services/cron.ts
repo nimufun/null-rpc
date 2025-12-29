@@ -280,7 +280,8 @@ export async function syncPublicNodes(env: Env): Promise<void> {
           const mevNodes = MEV_NODES[slug] || []
 
           // Store in D1
-          await storeChainData(env.DB, slug, chainEntry.name, chainId, nodes, archiveNodes, mevNodes)
+          const icon = (chainEntry as { icon?: string }).icon
+          await storeChainData(env.DB, slug, chainEntry.name, icon, chainId, nodes, archiveNodes, mevNodes)
           processed++
           console.log(`[Cron] ${slug}: ${nodes.length} valid, ${archiveNodes.length} archive`)
         } else {
