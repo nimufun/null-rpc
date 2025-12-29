@@ -289,8 +289,8 @@
 
     .chains-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 20px;
     }
 
     .chain-card {
@@ -299,7 +299,7 @@
       border-radius: 12px;
       padding: 20px;
       display: flex;
-      align-items: center;
+      flex-direction: column;
       gap: 16px;
       transition: all 0.2s;
     }
@@ -309,11 +309,17 @@
       transform: translateY(-2px);
     }
 
+    .chain-card-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
     .chain-icon {
-      width: 48px;
-      height: 48px;
-      min-width: 48px;
-      min-height: 48px;
+      width: 36px;
+      height: 36px;
+      min-width: 36px;
+      min-height: 36px;
       border-radius: 50%;
       background: linear-gradient(135deg, var(--ether-blue), var(--cyan-ray));
       display: flex;
@@ -321,7 +327,7 @@
       justify-content: center;
       font-weight: 700;
       color: white;
-      font-size: 18px;
+      font-size: 14px;
       overflow: hidden;
       flex-shrink: 0;
     }
@@ -332,22 +338,20 @@
       object-fit: cover;
     }
 
+    .chain-info {
+      flex: 1;
+    }
+
     .chain-info h4 {
       color: var(--white);
       font-size: 16px;
       margin-bottom: 4px;
     }
 
-    .chain-info .endpoint {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      color: var(--cyan-ray);
-    }
-
     .chain-stats {
-      margin-left: auto;
       display: flex;
-      gap: 12px;
+      gap: 16px;
+      margin-left: auto;
     }
 
     .chain-stat {
@@ -371,6 +375,57 @@
     .chain-stats .label {
       font-size: 10px;
       opacity: 0.6;
+    }
+
+    .chain-endpoint-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+
+    .chain-endpoint-row .endpoint {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      color: var(--cyan-ray);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .chain-copy-btn {
+      background: transparent;
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      color: var(--terminal-grey);
+      padding: 6px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .chain-copy-btn:hover {
+      background: rgba(0, 212, 255, 0.1);
+      border-color: var(--cyan-ray);
+      color: var(--cyan-ray);
+    }
+
+    .chain-copy-btn.copied {
+      background: rgba(0, 255, 148, 0.1);
+      border-color: var(--status-green);
+      color: var(--status-green);
+    }
+
+    .chain-copy-btn svg {
+      width: 14px;
+      height: 14px;
     }
 
     /* Analytics Section */
@@ -831,7 +886,11 @@
 
       .chain-card {
         padding: 16px;
+      }
+
+      .chain-card-header {
         flex-wrap: wrap;
+        gap: 12px;
       }
 
       .chain-info {
@@ -846,18 +905,27 @@
         text-overflow: ellipsis;
       }
 
-      .chain-info .endpoint {
-        font-size: 11px;
-      }
-
       .chain-stats {
         width: 100%;
         margin-left: 0;
-        margin-top: 12px;
+        margin-top: 8px;
         padding-top: 12px;
         border-top: 1px solid rgba(0, 212, 255, 0.1);
         justify-content: space-around;
         gap: 12px;
+      }
+
+      .chain-endpoint-row {
+        padding: 8px 12px;
+      }
+
+      .chain-endpoint-row .endpoint {
+        font-size: 11px;
+      }
+
+      .chain-copy-btn {
+        padding: 5px 8px;
+        font-size: 11px;
       }
 
       .analytics-section {
@@ -1303,6 +1371,23 @@
       setTimeout(() => btn.textContent = 'Copy', 2000);
     }
 
+    // Copy chain endpoint to clipboard
+    function copyChainEndpoint(btn, endpoint) {
+      navigator.clipboard.writeText(endpoint);
+      btn.classList.add('copied');
+      const originalText = btn.innerHTML;
+      btn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        Copied!
+      `;
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.innerHTML = originalText;
+      }, 2000);
+    }
+
     // Fetch chains data
     async function loadChains() {
       try {
@@ -1312,31 +1397,56 @@
         const grid = document.getElementById('chainsGrid');
         const dropdownMenu = document.getElementById('dropdownMenu');
         
+        // Custom icon mapping for reliable logos
+        const chainIcons = {
+          eth: 'https://s2.coinmarketcap.com/static/img/coins/128x128/1027.png',
+          bsc: 'https://cryptologos.cc/logos/bnb-bnb-logo.svg',
+          polygon: 'https://icons.llamao.fi/icons/chains/rsz_polygon.jpg',
+          arbitrum: 'https://icons.llamao.fi/icons/chains/rsz_arbitrum.jpg',
+          optimism: 'https://cryptologos.cc/logos/optimism-ethereum-op-logo.svg',
+          base: 'https://avatars.githubusercontent.com/u/108554348?s=200&v=4',
+          unichain: 'https://icons.llamao.fi/icons/chains/rsz_unichain.jpg',
+          berachain: 'https://icons.llamao.fi/icons/chains/rsz_berachain.jpg',
+        };
+        
         if (data.chains && data.chains.length > 0) {
           grid.innerHTML = data.chains.map(chain => {
-            const iconContent = chain.icon 
-              ? `<img src="${chain.icon}" alt="${chain.name}" onerror="this.style.display='none'; this.parentElement.textContent='${chain.slug.slice(0, 2).toUpperCase()}';">`
+            const iconUrl = chainIcons[chain.slug] || chain.icon;
+            const iconContent = iconUrl
+              ? `<img src="${iconUrl}" alt="${chain.name}" onerror="this.style.display='none'; this.parentElement.textContent='${chain.slug.slice(0, 2).toUpperCase()}';">`
               : chain.slug.slice(0, 2).toUpperCase();
+            const endpoint = `https://nullrpc.dev/${chain.slug}`;
             return `
             <div class="chain-card">
-              <div class="chain-icon">${iconContent}</div>
-              <div class="chain-info">
-                <h4>${chain.name || chain.slug}</h4>
-                <span class="endpoint">nullrpc.dev/${chain.slug}</span>
+              <div class="chain-card-header">
+                <div class="chain-icon">${iconContent}</div>
+                <div class="chain-info">
+                  <h4>${chain.name || chain.slug}</h4>
+                </div>
+                <div class="chain-stats">
+                  <div class="chain-stat">
+                    <div class="count">${chain.nodes}</div>
+                    <div class="label">nodes</div>
+                  </div>
+                  <div class="chain-stat">
+                    <div class="count archive">${chain.archiveNodes || 0}</div>
+                    <div class="label">archive</div>
+                  </div>
+                  <div class="chain-stat">
+                    <div class="count mev">${chain.mevNodes || 0}</div>
+                    <div class="label">mev</div>
+                  </div>
+                </div>
               </div>
-              <div class="chain-stats">
-                <div class="chain-stat">
-                  <div class="count">${chain.nodes}</div>
-                  <div class="label">nodes</div>
-                </div>
-                <div class="chain-stat">
-                  <div class="count archive">${chain.archiveNodes || 0}</div>
-                  <div class="label">archive</div>
-                </div>
-                <div class="chain-stat">
-                  <div class="count mev">${chain.mevNodes || 0}</div>
-                  <div class="label">mev</div>
-                </div>
+              <div class="chain-endpoint-row">
+                <span class="endpoint">${endpoint}</span>
+                <button class="chain-copy-btn" onclick="copyChainEndpoint(this, '${endpoint}')">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                  </svg>
+                  Copy
+                </button>
               </div>
             </div>
           `}).join('');

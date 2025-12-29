@@ -83,7 +83,7 @@ function extractRpcUrls(entry: ChainlistEntry): string[] {
 async function testChainId(url: string, expectedChainId: number): Promise<boolean> {
   try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 3000) // Reduced timeout
+    const timeout = setTimeout(() => controller.abort(), 5000) // 5 second timeout
 
     const response = await fetch(url, {
       body: JSON.stringify({
@@ -99,16 +99,27 @@ async function testChainId(url: string, expectedChainId: number): Promise<boolea
 
     clearTimeout(timeout)
 
-    if (!response.ok) return false
+    if (!response.ok) {
+      return false
+    }
 
     const data = (await response.json()) as { result?: string; error?: unknown }
 
-    if (data.error || !data.result) return false
+    if (data.error || !data.result) {
+      return false
+    }
 
     // Parse hex chain ID
     const chainId = Number.parseInt(data.result, 16)
-    return chainId === expectedChainId
-  } catch {
+    const isValid = chainId === expectedChainId
+
+    if (isValid) {
+      console.log(`[Cron] ✓ Valid node: ${url}`)
+    }
+
+    return isValid
+  } catch (_) {
+    // Silently fail - node is not reachable
     return false
   }
 }
