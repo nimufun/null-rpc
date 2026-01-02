@@ -158,6 +158,41 @@ async function testArchiveCapability(url: string): Promise<boolean> {
 }
 
 /**
+ * Test if an RPC endpoint is functional by fetching block number.
+ * Many public nodes allow eth_chainId but block actual data queries.
+ */
+async function testBlockNumber(url: string): Promise<boolean> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 5000)
+
+  try {
+    const response = await fetch(url, {
+      body: JSON.stringify({
+        id: 1,
+        jsonrpc: '2.0',
+        method: 'eth_blockNumber',
+        params: []
+      }),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      signal: controller.signal
+    })
+
+    if (!response.ok) return false
+
+    const data = (await response.json()) as { result?: string; error?: unknown }
+
+    if (data.error || !data.result) return false
+
+    return true
+  } catch {
+    return false
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+/**
  * Validate all RPC URLs for a chain and categorize as regular or archive nodes
  *
  * Implements STRICT SERIAL execution with robust error handling to prevent runtime crashes.
@@ -179,12 +214,20 @@ async function validateChainNodes(
       const isValid = await testChainId(url, expectedChainId)
 
       if (isValid) {
-        nodes.push(url)
+        // 2. Check basic functionality (eth_blockNumber)
+        // Ensures we don't pick up nodes that only allow metadata calls (like Ankr public)
+        const isFunctional = await testBlockNumber(url)
 
-        // 2. Only check Archive capability if valid
-        const isArchive = await testArchiveCapability(url)
-        if (isArchive) {
-          archiveNodes.push(url)
+        if (isFunctional) {
+          nodes.push(url)
+
+          // 3. Only check Archive capability if fully valid
+          const isArchive = await testArchiveCapability(url)
+          if (isArchive) {
+            archiveNodes.push(url)
+          }
+        } else {
+          console.warn(`[Cron] Node ${url} has valid ChainID but failed block check (likely restricted)`)
         }
       }
     } catch (_) {
